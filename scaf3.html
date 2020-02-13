@@ -1,0 +1,1355 @@
+<html ng-app="myApp" ng-controller="myCtrl">
+<head>
+<script src="/angular-1.6.4/angular.min.js"></script>
+<script>
+var appData=0
+,app = angular.module("myApp", [])
+,cats=window.cats={text:'catsTemplates',items:[
+			{text:'ng',items:[
+				{text:'directives',items:[
+					{text:'genericEntity',template:'{{e.name}}'}
+					,{text:'genericField',template:'{{field.name}}'}
+					,{text:'genericPage',template:'{{page.name}}'}
+					,{text:'genericTab',template:'{{tab.name}}'}
+					,{text:'genericForm',template:'{{form.name}}'}
+					,{text:'genericButtonLink',template:'ref{{field.name}}link'}
+					,{text:'genericTree',template:'{{treeNode.name}}'}
+				]}
+			]}
+			,{text:'html',items:[
+				{text:'FieldTypes',items:[
+					{text:'int',template:'{{field.name}}',items:[
+						{text:'Long',template:'{{field.name}}'}
+					]}
+					,{text:'String',template:'{{field.name}}',items:[
+						{text:'varchar',template:'{{field.name}}'}
+						,{text:'text',template:'{{field.name}}'}
+					]}
+					,{text:'Date',template:'{{field.name}}',items:[
+						{text:'inp-date',template:'{{field.name}}'}
+						,{text:'3ints / 2ints dropdowns',template:'{{field.name}}'}
+						,{text:'week-calendar',template:'{{field.name}}'}
+						,{text:'month-calendar',template:'{{field.name}}'}
+					]}
+					,{text:'enum',template:'{{field.name}}'}
+					,{text:'set',template:'{{field.name}}'}
+					,{text:'map/json-editor',template:'{{field.name}}'}
+					,{text:'fk',template:'{{field.name}}'}
+					,{text:'genericInps',items:[
+						 {text:'text',template:'{{field.name}}'}
+						,{text:'integer',template:'{{field.name}}'}
+						,{text:'date',template:'{{field.name}}'}
+					]}
+					,{text:'select',template:'{{field.name}}'}
+					,{text:'textarea',template:'{{field.name}}'}
+				]}
+				,{text:'entity-form',items:[
+					{text:'free-style',items:[
+						 {text:'(html-default inline)',template:'{{field.name}}'}
+						,{text:'html-block',template:'{{field.name}}'}
+					]}
+					,{text:'using className(css)',template:'{{field.name}}'}
+					,{text:'using fieldset-legend',template:'{{field.name}}'}
+					,{text:'html-table-tr-td',template:'{{field.name}}'}
+					,{text:'using div+css-grid',template:'{{field.name}}'}
+					
+				]}
+				,{text:'form',items:[
+					{text:'master-detail'}
+					,{text:'pagenation',template:'{{field.name}}'}
+					,{text:'using input params filters',template:'{{field.name}}'}
+					,{text:'reports',items:[
+						{text:'calendar',items:[
+							 {text:'events',template:'{{field.name}}'}
+							,{text:'day/hours',template:'{{field.name}}'}
+							,{text:'week/days',template:'{{field.name}}'}
+							,{text:'month',template:'{{field.name}}'}
+							,{text:'year',template:'{{field.name}}'}
+						]}
+						,{text:'pivot-table',template:'{{field.name}}'}
+						,{text:'leaflet (gis maps)',template:'{{field.name}}'}
+						,{text:'json-editor',template:'{{field.name}}'}
+						,{text:'blockly',template:'{{field.name}}'}
+						,{text:'svg-edit',template:'{{field.name}}'}
+						,{text:'charts',items:[
+							 {text:'d3.js',template:'{{field.name}}'}
+							,{text:'c3',template:'{{field.name}}'}
+							,{text:'nvd3',template:'{{field.name}}'}
+						]}
+					]}
+				]}
+				,{text:'tab',template:'{{field.name}}'}
+				,{text:'button-link',template:'{{field.name}}'}
+				,{text:'tree',template:'{{field.name}}'}
+				,{text:'directive',template:'{{field.name}}'}
+			]}
+			,{text:'IndexDB'}
+			,{text:'palletes',items:[
+				{text:'scaf',items:[
+					 {text:'entities',template:'{{field.name}}'}
+					,{text:'fields',template:'{{field.name}}'}
+					,{text:'field-set',template:'{{field.name}}'}
+					,{text:'entity-sets',template:'{{field.name}}'}
+					,{text:'page-set',template:'{{field.name}}'}
+				]}
+				,{text:'wizards(steps)',template:'{{field.name}}'}
+				,{text:'workflow',template:'{{field.name}}'}
+				,{text:'use-cases',template:'{{field.name}}'}
+				,{text:'help-screens (system-integration)',template:'{{field.name}}'}
+				,{text:'server-side httpMethods',template:'{{field.name}}'}
+			]}
+			,{text:'generators',items:[//functions that output clientSide source code(html+angular)
+				{text:'EntityGenerators',items:[
+					{text:'entityGen_default',template:
+					'function(e,fGen,fieldTmplt,headerTmplt,footerTmplt){var b=[headerTmplt];\n'
+					+'for(var i in e.fields)b.push(fGen(e,e.fields[i],fieldTmplt));\n'
+					+'b.push(footerTmplt);return b.join("")}'}
+					//fieldset for each field
+					//table headers per field
+					//table rows per field
+					//css grid for fields
+					
+				]}
+				,{text:'FieldGenerators',items:[
+					{text:'fieldGen_default',template:
+					'function(e,f,fieldTmplt){var b=[headerTmplt];\n'
+					+'for(var i in e.fields)b.push(fGen(e,e.fields[i],fieldTmplt));\n'
+					+'b.push("<br/>");return b.join("")}'}
+					/*
+					default-generators 
+					*/
+				]}
+			]}
+		]
+	,findPath:function(n){//uses breadth-first-search
+		if( n==cats )
+			return [n]
+		var target=0,h={n:cats},q=h;
+		while(h&&!target)
+		{	var x=h,a=x.n.items,c;
+			h=h.next;
+			if(h)x.next=h.prev=0
+			for(var i in a)
+			{	c=a[i]
+				if(c==n)
+				{	target={n:n,p:x};
+					break;}
+				else 
+				{c={n:c,p:x,prev:q};
+					q.next=c;q=c;
+					if(!h)
+						h=q
+				}
+			}
+		}
+		if(target){n=[n];q=target.p
+		while(q){n.unshift(q.n);q=q.p;}
+		return n;
+	}}
+	,pathStr:function(n){
+		var p=cats.findPath(n)
+		if(!p)return
+		var b=[];
+		for(var i in p)
+			b.push(p[i].text)
+		return b.join('.');}
+	,getByPath:function(path){//path::=str , dot seperated fully-qualified path of catTemplate node
+		var a=path.split('.'),n=cats,c
+		for(var i in a)if(i>0 && (c=n[a[i]]))n=c;
+		return n;}
+
+	,"defaultGenerators": {
+	"entity": "catsTemplates.generators.EntityGenerators.entityGen_default",
+	"entityTemplates": "catsTemplates.html.entity-form.free-style.html-block",
+	"field": "catsTemplates.generators.FieldGenerators.fieldGen_default",
+	"fieldTemplates": "catsTemplates.html.FieldTypes.String.varchar",
+	"appPages": "catsTemplates",
+	"appPagesTemplates": "catsTemplates"
+  }
+}//cats
+
+window.ngSvgIcons={
+//old_show:'<svg aria-hidden="true" data-prefix="far" data-icon="eye" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" class="svg-inline--fa fa-eye fa-w-18 fa-2x"><path fill="currentColor" d="M569.354 231.631C512.97 135.949 407.81 72 288 72 168.14 72 63.004 135.994 6.646 231.631a47.999 47.999 0 0 0 0 48.739C63.031 376.051 168.19 440 288 440c119.86 0 224.996-63.994 281.354-159.631a47.997 47.997 0 0 0 0-48.738zM288 392c-102.556 0-192.091-54.701-240-136 44.157-74.933 123.677-127.27 216.162-135.007C273.958 131.078 280 144.83 280 160c0 30.928-25.072 56-56 56s-56-25.072-56-56l.001-.042C157.794 179.043 152 200.844 152 224c0 75.111 60.889 136 136 136s136-60.889 136-136c0-31.031-10.4-59.629-27.895-82.515C451.704 164.638 498.009 205.106 528 256c-47.908 81.299-137.444 136-240 136z" class=""></path></svg>'
+	slashShow:'<svg style="width: 15px;" aria-hidden="true" data-prefix="far" data-icon="eye-slash" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" class="svg-inline--fa fa-eye-slash fa-w-18 fa-2x"><path fill="currentColor" d="M272.702 359.139c-80.483-9.011-136.212-86.886-116.93-167.042l116.93 167.042zM288 392c-102.556 0-192.092-54.701-240-136 21.755-36.917 52.1-68.342 88.344-91.658l-27.541-39.343C67.001 152.234 31.921 188.741 6.646 231.631a47.999 47.999 0 0 0 0 48.739C63.004 376.006 168.14 440 288 440a332.89 332.89 0 0 0 39.648-2.367l-32.021-45.744A284.16 284.16 0 0 1 288 392zm281.354-111.631c-33.232 56.394-83.421 101.742-143.554 129.492l48.116 68.74c3.801 5.429 2.48 12.912-2.949 16.712L450.23 509.83c-5.429 3.801-12.912 2.48-16.712-2.949L102.084 33.399c-3.801-5.429-2.48-12.912 2.949-16.712L125.77 2.17c5.429-3.801 12.912-2.48 16.712 2.949l55.526 79.325C226.612 76.343 256.808 72 288 72c119.86 0 224.996 63.994 281.354 159.631a48.002 48.002 0 0 1 0 48.738zM528 256c-44.157-74.933-123.677-127.27-216.162-135.007C302.042 131.078 296 144.83 296 160c0 30.928 25.072 56 56 56s56-25.072 56-56l-.001-.042c30.632 57.277 16.739 130.26-36.928 171.719l26.695 38.135C452.626 346.551 498.308 306.386 528 256z" class=""></path></svg>'
+	,edit:'<svg style="width: 15px;" aria-hidden="true" data-prefix="far" data-icon="edit" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" class="svg-inline--fa fa-edit fa-w-18 fa-3x"><path fill="currentColor" d="M402.3 344.9l32-32c5-5 13.7-1.5 13.7 5.7V464c0 26.5-21.5 48-48 48H48c-26.5 0-48-21.5-48-48V112c0-26.5 21.5-48 48-48h273.5c7.1 0 10.7 8.6 5.7 13.7l-32 32c-1.5 1.5-3.5 2.3-5.7 2.3H48v352h352V350.5c0-2.1.8-4.1 2.3-5.6zm156.6-201.8L296.3 405.7l-90.4 10c-26.2 2.9-48.5-19.2-45.6-45.6l10-90.4L432.9 17.1c22.9-22.9 59.9-22.9 82.7 0l43.2 43.2c22.9 22.9 22.9 60 .1 82.8zM460.1 174L402 115.9 216.2 301.8l-7.3 65.3 65.3-7.3L460.1 174zm64.8-79.7l-43.2-43.2c-4.1-4.1-10.8-4.1-14.8 0L436 82l58.1 58.1 30.9-30.9c4-4.2 4-10.8-.1-14.9z" class=""></path></svg>'
+	,erase:'<svg style="width: 15px;" aria-hidden="true" data-prefix="fas" data-icon="trash-alt" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" class="svg-inline--fa fa-trash-alt fa-w-14 fa-2x"><path fill="currentColor" d="M0 84V56c0-13.3 10.7-24 24-24h112l9.4-18.7c4-8.2 12.3-13.3 21.4-13.3h114.3c9.1 0 17.4 5.1 21.5 13.3L312 32h112c13.3 0 24 10.7 24 24v28c0 6.6-5.4 12-12 12H12C5.4 96 0 90.6 0 84zm416 56v324c0 26.5-21.5 48-48 48H80c-26.5 0-48-21.5-48-48V140c0-6.6 5.4-12 12-12h360c6.6 0 12 5.4 12 12zm-272 68c0-8.8-7.2-16-16-16s-16 7.2-16 16v224c0 8.8 7.2 16 16 16s16-7.2 16-16V208zm96 0c0-8.8-7.2-16-16-16s-16 7.2-16 16v224c0 8.8 7.2 16 16 16s16-7.2 16-16V208zm96 0c0-8.8-7.2-16-16-16s-16 7.2-16 16v224c0 8.8 7.2 16 16 16s16-7.2 16-16V208z" class=""></path></svg>'
+	,show:'<svg aria-hidden="true" data-prefix="far" data-icon="eye" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" class="svg-inline--fa fa-eye fa-w-18 fa-2x" style="width: 15px;display: inline;"><path fill="currentColor" d="M569.354 231.631C512.97 135.949 407.81 72 288 72 168.14 72 63.004 135.994 6.646 231.631a47.999 47.999 0 0 0 0 48.739C63.031 376.051 168.19 440 288 440c119.86 0 224.996-63.994 281.354-159.631a47.997 47.997 0 0 0 0-48.738zM288 392c-102.556 0-192.091-54.701-240-136 44.157-74.933 123.677-127.27 216.162-135.007C273.958 131.078 280 144.83 280 160c0 30.928-25.072 56-56 56s-56-25.072-56-56l.001-.042C157.794 179.043 152 200.844 152 224c0 75.111 60.889 136 136 136s136-60.889 136-136c0-31.031-10.4-59.629-27.895-82.515C451.704 164.638 498.009 205.106 528 256c-47.908 81.299-137.444 136-240 136z" class=""></path></svg>'
+	//,edit:'✎'//,show:'►', slashShow:'&#x25c1;',erase:'✘'
+	,cut:'✂'}
+
+app.directive('ng-panel', ['ngIfDirective',function(ngIfDirective){
+	var icons=window.icons , ngIf = ngIfDirective[0];
+	function genStr(s,n,v){return s;}//+'<br/><span class="smlLbl">'+n+'='+v+'</span><br/>';
+	function resolvePath(sco,path){
+		var i=0,n=path.length-1,w=sco,x;
+		if(n<1){path.unshift('p');n++;}
+		while(w )
+		{x=w[path[i]]
+			while(x && i<n-1)
+				x=x[path[++i]]
+			if(x && i>=n-1)
+				return x;
+			i=0;
+			w=w.$parent;
+		}return sco
+	}
+	function checkProp(){
+		return true;
+	}
+	return {
+		transclude: ngIf.transclude,
+		priority: ngIf.priority - 1,
+		terminal: ngIf.terminal,
+		restrict: ngIf.restrict
+	,link: function(scope, element, attrs){
+		// find the initial ng-if attribute
+			var initialNgIf = attrs.ngIf, ifEvaluator;
+			// if it exists, evaluates ngIf && ifAuthenticated
+			if (initialNgIf) {
+				ifEvaluator = function () {
+					return scope.$eval(initialNgIf) && checkProp();
+				}
+			} else { // if there's no ng-if, process normally
+				ifEvaluator = function () {
+					return checkProp();
+				}
+			}
+			attrs.ngIf = ifEvaluator;
+			ngIf.link.apply(ngIf, arguments);
+		var e=element[0] //debugger
+		,path=attrs.prop
+		,icon=attrs.icon 
+		if(icon&&icon.split)icon=icon.split(',')
+		var a=path&&path.split&&path.split('.')
+			,obj=resolvePath(scope,a)
+			,prop=a[a.length-1],i=0
+			,lbl=attrs.label
+			,v=obj[prop]
+			,w=v?1:0,t=0
+			,y=icon[w]
+			,z=icons[y]
+			,p=e.parentNode
+			,bc=attrs.brdrClss
+			,f=document.createElement('fieldset')
+			,g=document.createElement('legend')
+		,ico=document.createElement('span')
+		g.innerHTML=lbl;
+		if(bc)f.className=bc;
+		f.appendChild(g)
+		f.appendChild(e);
+		g.appendChild(t);
+		p.replaceChild(f,t)
+		e.onclick=function(){
+			var y=obj[prop]
+				,z=obj[prop]=!y//p.toggleShow(path) 
+				,w=z?1:0
+				,v=icon[w]
+				,s=icons[v]
+			e.innerHTML=genStr(s,prop,z) //icons[icon[(obj[prop]=!obj[prop])?1:0]];
+			//if
+			if(obj.$digest)obj.$digest();else
+			if(obj.$parent&&obj.$parent.$digest)
+				obj.$parent.$digest();else
+			if(scope.$parent&&scope.$parent.$digest)
+				scope.$parent.$digest();else
+			if(scope&&scope.$digest)scope.$digest();
+		}
+	}
+  }
+
+/*
+app.directive('ifAuthenticated', ['ngIfDirective', 'User', function(ngIfDirective, User) {
+    var ngIf = ngIfDirective[0];
+
+    return {
+        transclude: ngIf.transclude,
+        priority: ngIf.priority - 1,
+        terminal: ngIf.terminal,
+        restrict: ngIf.restrict,
+        link: function(scope, element, attributes) {
+            // find the initial ng-if attribute
+            var initialNgIf = attributes.ngIf, ifEvaluator;
+            // if it exists, evaluates ngIf && ifAuthenticated
+            if (initialNgIf) {
+                ifEvaluator = function () {
+                    return scope.$eval(initialNgIf) && User.isAuthenticated();
+                }
+            } else { // if there's no ng-if, process normally
+                ifEvaluator = function () {
+                    return User.isAuthenticated();
+                }
+            }
+            attributes.ngIf = ifEvaluator;
+            ngIf.link.apply(ngIf, arguments);
+        }
+    };
+}]);
+*/
+}]);
+
+app.directive('ngTitle', function(){
+	return {scope:{d:'@'},link:function(scope,element,attrs){
+		var e=element[0]
+		,ttl=attrs.ngTitle
+		,bc=attrs.brdrClss
+		,p=e.parentNode
+		,f=document.createElement('fieldset')
+		,g=document.createElement('legend')
+		g.innerHTML=ttl;
+		f.appendChild(g)
+		if(bc)f.className=bc;
+		p.replaceChild(f,e)
+		f.appendChild(e);
+	}}
+})
+
+app.directive('ngIcon', function(){
+	//var icons=window.ngSvgIcons
+	function genStr(s,n,v){return s;}//+'<br/><span class="smlLbl">'+n+'='+v+'</span><br/>';
+	//function root(p){while(p && !p.appData &&p.$parent)p=p.$parent;return p;}
+	function resolvePath(sco,path){
+		var i=0,n=path.length-1,w=sco,x;
+		if(n<1){path.unshift('p');n++;}
+		while(w )
+		{x=w[path[i]]
+			while(x && i<n-1)
+				x=x[path[++i]]
+			if(x && i>=n-1)
+				return x;
+			i=0;
+			w=w.$parent;
+		}return sco
+	}
+  return {//replace: true,
+	scope:  {d: '@'}//true
+	,link: function(scope, element, attrs){
+		var e=element[0] //debugger
+		,path=attrs.prop
+		,icon=attrs.ngIcon 
+		if(icon&&icon.split)icon=icon.split(',')
+		if(path){
+			var a=path&&path.split&&path.split('.')
+				,obj=resolvePath(scope,a)// && scope.$parent//arguments&&arguments[0]&&arguments[0].
+				,prop=a[a.length-1],i=0
+			//while(i<a.length-1){iv=obj[a[i++]];if(iv)obj=iv;}
+			e.onclick=function(){
+				var y=obj[prop]
+					,z=obj[prop]=!y//p.toggleShow(path) 
+					,w=z?1:0
+					,v=icon[w]
+					,s=window.ngSvgIcons[v]
+				e.innerHTML=genStr(s,prop,z) //window.ngSvgIcons[icon[(obj[prop]=!obj[prop])?1:0]];
+				if(obj.$digest)obj.$digest();else
+				if(obj.$parent&&obj.$parent.$digest)
+					obj.$parent.$digest();else
+				if(scope.$parent&&scope.$parent.$digest)
+					scope.$parent.$digest();else
+				if(scope&&scope.$digest)scope.$digest();
+			}
+			var v=obj[prop]
+				,w=v?1:0
+				,y=icon[w]
+				,z=window.ngSvgIcons[y]
+			e.innerHTML=genStr(z,prop,v) //window.ngSvgIcons[icon[obj[prop]?1:0]];
+			//link function runs before compile
+			//so our datapoint values will be updated before displaying
+			
+			//link function takes 4 parameters
+			//scope - whatever scope object we create
+			//element - current datapoint element
+			//attrs - any atributes given to our current datapoint directive
+		}else{
+			var y=icon.charAt
+				?icon:icon[0]
+				,z=window.ngSvgIcons[y]
+			e.innerHTML=z
+		}
+	}
+  }
+});
+
+app.directive('ngTree',function($compile){
+	var template=0 //document.getElementById()
+	return {
+	restrict:'E',
+	terminal:true,
+	scope:{treenode:'=',parentdata:'='},
+	link:function(scope,element,attrs){
+		var ctgrs=scope.cats=window.cats||scope.cats||scope.$parent.cats
+		,treenode=scope.treenode||attrs.treenode=='cats'?ctgrs:attrs.treenode
+		,parentdata=scope.parentdata||attrs.parentdata=='cats'?ctgrs:attrs.parentdata
+		//,template=tmplt//'<span>{{treenode.text}}</span>'
+		//template+='<span ng-icon="slashShow,show" prop="treenode.show"></span><span ng-if="treenode.show">'
+		
+		//if(angular.isArray(scope.treenode.items))template+='<ul class="indent"><li ng-repeat="item in treenode.items"><ng-tree treenode="item" parentdata="treenode.items" ></ng-tree></li></ul>'
+		//template+='</span>'
+		if(!template)
+			template=element[0].innerHTML
+		scope.deleteMe= function(index){
+			if(scope.parentdata){
+				var itemIndex= scope.parentdata.indexOf(scope.treenode)
+				scope.parentdata.splice(itemIndex,1)
+			}
+			scope.treenode={}
+		}
+		var newElement = angular.element(template)
+		$compile(newElement)(scope)
+		element.replaceWith(newElement)
+	}
+}})
+
+app.controller("myCtrl", function($scope) {
+	function indexOfName(a,n,x){
+		for(var i in a)
+			if(i!=x&&a[i]&&a[i].name==n)
+				return i;
+		return -1;}
+	function isValidName(n){
+		function isCtrlChrCode(c){
+			return c<48||(c>57&&c<65)||(c>90&&c!=95&&c<97)||(c>122&&c<128);}
+		var c=n.charCodeAt(0);
+		if(c>47&&c<58)return false;
+		for(var i=0;i< n.length;i++){
+			c=n.charCodeAt(i);
+			if(isCtrlChrCode(c))
+				return false;}
+		return n;}
+	var p=$scope,cats=p.cats=window.cats,v=p.appData=appData=
+	{dbName:'test',dbUn:'root',dbPw:'qwerty',dbHost:'localhost'
+		,servletClassName:'srvlt',declarations:'',appTitle:'Codebase-Scaffolding'
+		,jspName:'indx.jsp'
+		,packageName:'tst'
+		,httpMethods:[]
+		,entities:[]
+		,views:[],"defaultGenerators": {}
+		}
+	p.show={implementation:0,cats:0,views:0,entities:0,decl:0}
+	p.columnTypes=['Integer','String','Date','enum','set','blob','fk']//TODO: mySql index
+	p.columnTypes.indices=['index','pk','unique','fullText']
+	p.columnTypes.tbl={"Integer":'int(10)',"String":'varchar(255)'
+		,"Date":'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP'
+		,"blob":'blob'}
+	p.bool=['false','true']
+	p.p=p
+	p.toggleShow=function(path){
+		var a=path&&path.split&&path.split('.'),n=a&&a.length,i=0,x=p,prop,y;
+		while(i<n-1){
+			y=x[a[i++]];
+			if(y)x=y;}
+		prop=a[n-1]
+		return x[prop]=!x[prop]
+		}
+	p.newEntity=function(name){
+		if(indexOfName(v.entities,name)!=-1||!isValidName(name))return;
+		var e={name:name,fields:[],dbtName:name,httpMethods:[],indices:[]};//,names:{}//p.slct.e=
+		v.entities.push(e);return e;}
+	p.remE=function(e){ 
+		var i=indexOfName(v.entities,e.name)
+		console.log('remEntity',e,i);
+		v.entities.splice(i,1);}
+	p.newField=function(e,pf){//name,type,display
+		if(!pf ||indexOfName(e.fields,pf.name)!=-1||!isValidName(pf.name))return false;//p.slct.
+		var f={name:pf.name,type:pf.type,display:pf.display};
+		e.fields.push(f)
+		return f;}
+	p.newIndx=function(e,nim){
+		if(!nim ||indexOfName(e.indices,nim)!=-1||!isValidName(nim))return false;//p.slct.
+		var f={name:nim,cols:[]};
+		e.indices.push(f)
+		return f;}
+	p.remF=function(e,f){
+		var i=indexOfName(e.fields,f.name)
+		console.log('remField',e,f,i);
+		e.fields.splice(i,1);}
+	p.remIndx=function(e,f){
+		var i=indexOfName(e.indices,f.name)
+		console.log('remIndx',e,f,i);
+		e.indices.splice(i,1);}
+
+	p.chngEntityName=function(e,nm){console.log('chngEntityName',arguments,isValidName(e.name));}
+	p.chngFieldName =function(e,f,nm){console.log('chngFieldName',arguments,isValidName(f.name));}
+	p.chngIndxName =function(e,f,nm){}//console.log('chngIndxName',arguments,isValidName(f.name));
+	p.remMethod =function(e,method){
+		console.log('remMethod',arguments);
+		var a=e.httpMethods,j=a.indexOf(method)
+		if(j!=-1)
+			a.splice(j,1);
+		}
+	p.remPrm=function(e,m,prm){
+		console.log('remPrm',arguments);
+		var a=m.params,j=a.indexOf(prm)
+		if(j!=-1)
+			a.splice(j,1);
+		}
+	p.remMEx=function(e,m,x){
+		console.log('remMEx',arguments);
+		var a=m['throws'],j=a.indexOf(x)
+		if(j!=-1)
+			a.splice(j,1);
+		}
+
+	p.onChngdFields_updateDefaults=function onChng_updateDefaults(e){
+		if(e.defaultCreationDBTIndices)
+			p.generateCreationDBTIndices(e)
+	}
+
+	p.generateCreationDBTIndices=function generateCreationDBTIndices (e){
+		var a=['List ColsDefinition= Util.lst(']
+		for(var i in e.fields){
+			var f=e.fields[i],s=p.columnTypes.tbl[f.type]
+			if(i!=0)
+				a.push('\n,')
+			if(f.type=='enum' || f.type=='set'){
+				s=[f.type+'('];
+				for(var ic in f.enums){
+					if(ic>0)
+						s.push(',');
+					var c=f.enums[ic]
+					s.push(JSON.stringify(c));
+				}
+				s.push(')');
+				if(f.notNull)
+					s.push(' NOT NULL ');
+				if(f.enumsDefault)
+					s.push(' default '+JSON.stringify(f.enumsDefault||f.enumsDefault.name));
+				s=s.join('')
+			}
+			else if(f.type=='Date'){
+				if(f.notNull)
+					s+=' NOT NULL';
+				if(f.defaultCurrentTimestamp)// onUpdateCurrentTimestamp , defaultCurrentTimestamp
+					s+=' default current_Timestamp';
+				if(f.onUpdateCurrentTimestamp)
+					s+=' on update current_Timestamp';
+			}else{if(f.length)
+					s+='('+f.length+')';
+				if(f.notNull)
+					s+=' NOT NULL';}
+			if(f.pk){
+				s+=' Primary Key '
+				if(f.auto_increment)
+					s+='auto_increment'
+			}
+			a.push(JSON.stringify(s)+'\t//'+f.name)
+		}a.push("\n),indices=")
+		if(e.indices){a.push("Util.lst(")
+			for(var i in e.indices){
+				var f=e.indices[i],c='`',p='(',cp=')',s=[c,f.name,c,p]
+				for(var ic in f.cols){
+					
+				}
+				s.push(cp);
+				a.push(JSON.stringify(s.join('')))
+			}a.push("\n)")
+			}else a.push('null')
+		a.push(',rows=null;\n')
+		a.push('return Util.lst(ColsDefinition,indices,rows,'+e.name+'.class );\n')
+		if(!e.creationDBTIndices)e.creationDBTIndices='';
+		e.creationDBTIndices+= a.join("")
+	}
+
+	p.toggle_defaultCRUDhttpMethod =function(e){
+		console.log('toggle_defaultCRUDhttpMethod',arguments);
+		if(p.defaultCRUDhttpMethod)
+		{	p.remMethod(e,p.defaultCRUDhttpMethod);
+			p.defaultCRUDhttpMethod=null;
+		}
+		else 
+			return p.defaultCRUDhttpMethod={
+				name:'defaultCRUDhttpMethod'
+				,returnType:e.name
+				,"throws":['Exception']
+				,params:[{type:e.name,name:'t'}]
+				,body:'return t.save();'}
+		}//function
+
+	p.toggle_defaultGetHttpMethod =function(e){
+		console.log('toggle_defaultGetHttpMethod',arguments);
+		if(p.defaultGetHttpMethod)
+		{	p.remMethod(e,p.defaultGetHttpMethod);
+			p.defaultGetHttpMethod=null;
+		}
+		else 
+			return p.defaultGetHttpMethod={
+				name:'defaultGetHttpMethod'
+				,returnType:e.name
+				,"throws":['Exception']
+				,params:[{type:e.name,name:'t'}]
+				,body:'return t.load();'}
+		}//function
+
+	p.toggle_defaultDeleteHttpMethod =function(e){
+		console.log('toggle_defaultDeleteHttpMethod',arguments);
+		if(p.defaultDeleteHttpMethod)
+		{	p.remMethod(e,p.defaultDeleteHttpMethod);
+			p.defaultDeleteHttpMethod=null;
+		}
+		else 
+			return p.defaultDeleteHttpMethod={
+				name:'defaultDeleteHttpMethod'
+				,returnType:e.name
+				,"throws":['Exception']
+				,params:[{type:e.name,name:'t'}]
+				,body:'return t.load();'}
+		}//function
+
+	p.toggle_defaultListHttpMethod =function(e){	// incomplete body implementation
+		console.log('toggle_defaultListHttpMethod',arguments);
+		if(p.defaultListHttpMethod)
+		{	p.remMethod(e,p.defaultListHttpMethod);
+			p.defaultListHttpMethod=null;
+		}
+		else 
+			return p.defaultListHttpMethod={
+				name:'defaultListHttpMethod'
+				,returnType:e.name
+				,"throws":['Exception']
+				,params:[{type:e.name,name:'t'}]
+				,body:'return t.load();'}
+		}//function
+
+	p.toggleDefaultHttpMethodOrmAppJson=function(e){	// incomplete body implementation
+		console.log('toggleDefaultHttpMethodOrmAppJson',arguments);
+		if(p.defaultHttpMethodOrmAppJson)
+		{	p.remMethod(e,p.defaultHttpMethodOrmAppJson);
+			p.defaultHttpMethodOrmAppJson=null;
+		}
+		else
+			return p.defaultHttpMethodOrmAppJson={
+				name:'defaultHttpMethodOrmAppJson'
+				,returnType:e.name
+				,"throws":['Exception']
+				,params:[{type:e.name,name:'t'}]
+				,body:'return '+JSON.stringify(JSON.stringify(v))+';'}
+	}//function
+
+ p.toggleDefaultHttpMethodAngularForm=function(e) {	// incomplete body implementation
+	console.log('toggleDefaultHttpMethodAngularForm', arguments);
+	if (p.defaultHttpMethodAngularForm) {
+		p.remMethod(e, p.defaultHttpMethodAngularForm);
+		p.defaultHttpMethodAngularForm = null;
+	}
+	else{var r=p.defaultHttpMethodAngularForm = {
+		name: 'defaultHttpMethodAngularForm'
+		, returnType: e.name
+		, "throws": ['Exception']
+		, params: [{type: e.name, name: 't'}]
+		, body: []
+		}
+
+	/*TODO:
+		r.body should return a string of a
+		SPA html angularjs application
+		of a form for the Tbl.this fields,
+		along with loading an entry based on pk,
+		and the html-page also contains the js
+		for the angular.module, controllers,
+		and other requirements/resources
+
+		maybe it should have an api for loading a specific pk-set
+		*/
+			return r;
+		}
+	}//function
+
+	p.loadJson=function jsonChng(){
+		var j=prompt('enter json-struct to load',JSON.stringify(p.appData));
+		if(j)try{
+			var o=JSON.parse(j)
+			if(o)
+				p.appData=o;
+		}catch(ex){alert(ex)}}
+
+	p.onAddEnum=function(e,f){
+		if(!f.enums || !f.enums.push)
+			f.enums=[]
+		f.enums.push('hi'+f.enums.length)
+		}
+	p.remEnum=function(e,f,m){
+		var a=f.enums,i=a.indexOf(m)
+		a.splice(i,1);}
+	p.addIndxCol=function(e,ix){
+		ix.cols.push({});}
+/*
+TODO: button to send json to clipboard
+
+pre-defined HttpMethods
+	generate 4 httpMethods for crud
+	generate json of orm 
+	generate angularjs form for crud
+	generate angularjs report
+	generate pivot table (and grouping , and master-detail gui)
+*/
+
+
+p.quickCreate=function quickCreate(txt){
+/*
+grammar::= (<entity> | <cat-decl> | <view>)*
+comment::= "//" <text>* <newline> | "/*" <text>* "*"+"/"
+entity::= <open> "entity" <name> <entitybody>  [ <open> <entityCatTemplate> <clos> ] <clos>
+entitybody::= <open> "fields" <fields> <clos> [ <open> "indices" <indices> <clos> ] 
+fields::=( <open> <name> <fieldDatatype> [ <open> <fieldCatTemplate> <clos> ] <clos> 
+	|<newline> <name> [ <fieldDatatype> ] <newline> 
+	)*
+
+fieldDatatype::=( (int|integer|long|num|number|decimal|float|double|real | text|string|varchar | blob)
+	|	(date|timestamp) <fieldOptions> "onupdateCurrentTimeStamp"?
+	|	("enum" | "set") <open> (<name> ","? )* <clos> 
+	|	"fk" <name:entity> <name:field>
+	|	"catTemple" <path.name> 
+	) <fieldOptions>
+
+fieldOptions::= <length>? ["not" "null" | "notnull" ] ("default" <val:num/txt/enum/set> | "defaultCurrentTimestamp")? <index-decl>? "auto_increment"?
+length::= <int>[","<int>]
+indices::= (<open> <index-decl>? <name> (<col-name> <length> )+ <clos> )*
+index-decl::= ("primary"|"full text"|"unique")? ("key"|"index")?
+fieldCatTemplate::= "template-name" <path.name> | "template" <text> | "decl-template" <path.name> <text>
+entityCatTemplate::="template-name" <path.name> | "template" <text> | "decl-template" <path.name> <text>
+cat-decl::= 
+view::= 
+
+open::= 1of3: [ or { or (
+clos::= closing the matching open: ] or } or )
+
+name::= <identifier> | <quot> <text> <matching-closing-quot>
+quot::= 1of3: ' or " or `
+text::= utf-8 text
+newline::= "\n"
+*/
+	var i=0,parser={re:
+/\n|\s+|\\\`|\\\'|\\\"|\`|\'|\"|\(|\)|\[|\]|\{\{|\}\}|\{|\}|\/\/|\/\*|\*\//gi
+		,matchs:{
+		//''	:['whitespace'],//\s+ : ' ' ,'\t' ,'\n' ,,	//,'{{' :['match','}}']
+		'('  :['match',')']//,')'  :['matched']
+		,'[' :['match',']']//,']'  :['matched']
+		,'{' :['match','}']//,'}'  :['matched']
+		//,'<'  :['match','>']//,'>'  :['matched']
+		,'`' :['quot','`']
+		,"'" :['quot',"'"]
+		,'"' :['quot','"']
+		,'//':['comment','\n']
+		,'/*':['comment','*/']//,'*/' :['matched-comment']
+		}
+		,lines:[],no:0
+		,tokens:[]
+		,init0:function init0(){
+			var x,a=parser.tokens,r=parser.re,e;while(x=r.exec(txt))
+			{a.push(e={j:x.index,i:re.lastIndex,token:x[0]})
+				e.prev=txt.substring(e.i,e.j);} // e.v=e.prev+e.token;
+		}//Init0
+		,init:function init(){
+			function match(p){
+				var e,t,x;
+				do
+				{if(x=parser.re.exec(txt)){
+					p.tokens.push(e={i:
+					 parser.re.lastIndex
+						,j:x.index
+						,no:parser.no++
+						,token:t=x[0]})
+					e.txt=txt.substring(e.i,e.j);
+					if(t=='\n')
+					{var z=parser.lines;
+						if(!(e.lineNo=z.length))
+						z.push(parser.tokens[0])
+						z.push(e);}
+					if(t==p.m[1])
+						x=0;else 
+					if(p.m[0]=='match'){
+						if(e.m =parser.matchs[t]){ 
+							e.tokens=[];
+							match(e);}
+					}
+				}}while( x )
+			}
+			parser.m=['match']
+			match(parser)
+		}//init
+	}//Parser
+	,grammar={start:{}
+		,entity:function(){}
+		,quot:function(){}
+		,comment:{}
+		,quot:{}
+	}//grammar
+	,fsm={state:'start',e:0,stack:[]}
+	,tokens={'p':['primary key','pk']
+		,'i':['integer','int','i']
+		,'a':['auto_increment','asc','ascending']
+		,'s':['string','str','set','s']
+		,'d':['date','double','decimel','desc','d']
+		,'t':['text']
+		,'f':['float','f']
+		,'r':['real','r']
+		,'e':['enum','e']
+		,'b':['boolean','bool','b']
+		,'n':['number','num','n']
+		,'k':['kwd','kd','key']
+		,'c':['currency']
+		,'u':['unique']
+	}
+	parser.init(txt);i=0
+	var a=parser.tokens,mode='entity';
+	function doEntity(){
+		var t=a[i],v=parser.doMatch(),m=parser.matchs[t.token],f
+		,e={name:v,fields:[],dbtName:v,httpMethods:[],indices:[]};
+		p.appData.entities.push(e)
+		t=a[++i];v=parser.doMatch();m=parser.matchs[t.token]
+		while(i<a.length&& t.token!='.'&& m[0]!='token'){
+			
+		}
+		return e;
+	}
+	function doCat(){
+		function doTemplate(){}
+	}
+	function doView(){}
+	var fmap={entity:doEntity,view:doView,cat:doCat}
+	for(i=0;i<a.length;i++){
+		var x=a[i],m=parser.matchs[x.token]
+		if(m[1]=='token')
+			mode=m[1]
+		fmap[mode]()
+	}
+	
+ }//quickCreate
+
+});
+</script>
+</head>
+<body>
+<style>
+fieldset > fieldset{background-color:#f8f8ff}
+fieldset > fieldset.brd{background-color:#f8f8ff}
+fieldset >fieldset > fieldset.brd{background-color:#e0e0ff}
+fieldset >fieldset >fieldset > fieldset.brd{background-color:#e0e0f0}
+.brd{border:3px double #000080;border-radius: 15px;padding:5px;background-color:#f0f0fd}
+.smlLbl{font-size:6px}
+textarea{resize: horizontal;width: 63px;height:20px}
+fieldset,legend{display:inline;padding:1px}
+.selectedTreeNode{border:1px solid green}
+</style>
+<h1 style="text-align:center">{{appData.appTitle}}</h1>
+<p style="text-align:center">{{appData.appDesc}}</p>
+<hr/>
+<h2 style="text-align:center">App</h2><span ng-icon="slashShow,show" 
+	prop="show.decl"></span><span ng-if="show.decl">
+		<textarea ng-title="AppTitle" ng-model="appData.appTitle"></textarea>
+		<textarea ng-title="AppDesc" ng-model="appData.appDesc"></textarea>
+		<textarea ng-title="jspName" ng-model="appData.jspName"></textarea>
+		<textarea ng-title="packageName" ng-model="appData.packageName"></textarea>
+		<textarea ng-title="servletClassName" ng-model="appData.servletClassName"></textarea>
+		<fieldset><legend>enum context.DB</legend>
+		<textarea ng-title="server" ng-model="appData.dbHost"></textarea>
+		<textarea ng-title="dbName" ng-model="appData.dbName"></textarea>
+		<textarea ng-title="un" ng-model="appData.dbUn"></textarea>
+		<textarea ng-title="pw" ng-model="appData.dbPw"></textarea></fieldset>
+		servlet-{{appData.servletClassName}}-declarations:
+		<textarea ng-model="appData.declarations" style="resize: both"></textarea>
+		<span ng-title="Default-Generators"><br/>
+			<span ng-title="Entity"
+				>{{appData.defaultGenerators.entity
+					||cats.defaultGenerators.entity
+					}}<button ng-click="appData.defaultGenerators.entity=cats.pathStr(cats.selectednode)"
+					>select Current</button><button ng-click="appData.defaultGenerators.entity=null"
+					>default</button><br/>
+			<span ng-title="entity-templates"
+				>{{appData.defaultGenerators.entityTemplates
+					||cats.defaultGenerators.entityTemplates
+					}}<button ng-click="appData.defaultGenerators.entityTemplates=cats.pathStr(cats.selectednode)"
+					>select Current</button><button ng-click="appData.defaultGenerators.entityTemplates=null"
+					>default</button></span>
+			</span><br/>
+			<span ng-title="Field"
+				>{{appData.defaultGenerators.field
+					||cats.defaultGenerators.field
+					}}<button ng-click="appData.defaultGenerators.field=cats.pathStr(cats.selectednode)"
+					>select Current</button><button ng-click="appData.defaultGenerators.field=null"
+					>default</button><br/>
+				<span ng-title="field-templates"
+					>{{appData.defaultGenerators.fieldTemplates
+						||cats.defaultGenerators.fieldTemplates
+						}}<button ng-click="appData.defaultGenerators.fieldTemplates=cats.pathStr(cats.selectednode)"
+						>select Current</button><button ng-click="appData.defaultGenerators.fieldTemplates=null"
+					>default</button>
+				</span>
+			</span><br/>
+			<span ng-title="App-Pages"
+				>{{appData.defaultGenerators.appPages
+					||cats.defaultGenerators.appPages
+					}}<button ng-click="appData.defaultGenerators.appPages=cats.pathStr(cats.selectednode)"
+					>select Current</button><button ng-click="appData.defaultGenerators.appPages=null"
+					>default</button><br/>
+				app-pages-templates<span ng-title="appPages-templates"
+				>{{appData.defaultGenerators.appPagesTemplates
+					||cats.defaultGenerators.appPagesTemplates
+					}}<button ng-click="appData.defaultGenerators.appPagesTemplates=cats.pathStr(cats.selectednode)"
+				>select Current</button><button ng-click="appData.defaultGenerators.appPagesTemplates=null"
+					>default</button></span>
+			</span>
+		</span><br/>
+		AppJson<textarea readonly="true" ng-model="appData|json" style="resize: both"></textarea>
+<input type="button" ng-click="loadJson()" value="load"/>
+	</span>
+
+
+<hr/>
+<span ng-icon="slashShow,show" prop="show.quickCreate"></span><span ng-if="show.quickCreate">
+	<h2 style="text-align:center">Quick-Create</h2>
+	<textarea ng-model="quickCreateTxt" style="resize:both"></textarea>
+	<input type="button" ng-click="quickCreate(quickCreateTxt)" 
+		value="create"/>
+	Hints:<span ng-icon="slashShow,show" prop="show.quickCreateHints"></span><pre ng-if="show.quickCreateHints">
+		the lead word on the first line is the name for a new entity
+		for a new entity use \e '[' &lt;name> ']'
+		on every next-line , the lead word (or in backTicks) is the name of a new field
+		// are comments
+		to specify the field type use \t , followed by (int,str,date,enum,set,blob,fk(&lt;entity-name>,&lt;col-name>) )
+		to specify template(literally) of the field \t-start['['&lt;name>']' ] and end with \t-end['[' &lt;name> ']' ]
+
+		for a new view use \view '[' &lt;name> ']'
+		for a new cat use \cat '[' &lt;name> ']'
+		for a new cat-template use \tmplt '[' &lt;name> ']' , and ends \tmplt-end[ '[' &lt;name> ']' ]</pre>
+</span><hr/>
+
+
+<h2 style="text-align:center">Entities</h2><span ng-icon="slashShow,show" prop="show.entities"></span><span ng-if="show.entities">
+ <fieldset ng-repeat="e in appData.entities" class="brd" >
+	<legend>
+		<textarea ng-model="e.name" ng-change="chngEntityName(e)" style="font-size: 28; height: 30;line-height: 0.9;"></textarea>
+	</legend>
+	<span ng-icon="slashShow,show" prop="e.showMisc"></span>
+	<span ng-if="e.showMisc">
+		<textarea ng-title="dbtName" ng-model="e.dbtName"></textarea>
+		<textarea ng-title="creationDBTIndices(TL tl)" ng-model="e.creationDBTIndices" style="resize: both"></textarea>
+		<input type="button" value="Reset body" ng-click="e.creationDBTIndices=''" />
+		<input type="button" value="append default body" ng-click="generateCreationDBTIndices(e)" />
+		<br/>
+		<textarea ng-title="class-{{e.name}}-declarations:" ng-model="e.declarations" style="resize: both"></textarea>
+		<span ng-if="e.showGenerators" ng-title="Client-side generators">
+			<span ng-title="App-Pages">{{e.generators.appPages
+				||appData.defaultGenerators.appPages
+				||cats.defaultGenerators.appPages
+				}}<button ng-click="e.generators.appPages=cats.pathStr(cats.selectednode)"
+				>select Current</button><button ng-click="e.generators.appPages=null"
+				>default</button>
+				<br/>app-pages-templates<span ng-title="appPages-templates"
+				>{{e.generators.appPagesTemplates
+					||appData.defaultGenerators.appPagesTemplates
+					||cats.defaultGenerators.appPagesTemplates
+					}}<button ng-click="e.generators.appPagesTemplates=cats.pathStr(cats.selectednode)"
+					>select Current</button><button ng-click="e.generators.appPagesTemplates=null"
+					>default</button></span>
+			</span><br/>
+			<span ng-title="entity-generator"
+				>{{e.generators.entity
+					||appData.defaultGenerators.entity
+					||cats.defaultGenerators.entity
+					}}<button ng-click="e.generators.entity=cats.pathStr(cats.selectednode)"
+					>select Current</button><button ng-click="e.generators.entity=null"
+					>default</button><br/>
+				<span ng-title="entity-templates"
+					>{{e.generators.entityTemplates
+						||appData.defaultGenerators.entityTemplates
+						||cats.defaultGenerators.entityTemplates
+						}}<button ng-click="e.generators.entityTemplates=cats.pathStr(cats.selectednode)"
+						>select Current</button><button ng-click="e.generators.entityTemplates=null"
+						>default</button>
+				</span><br/>
+				<span ng-title="Field"
+					>{{e.generators.field
+						||appData.defaultGenerators.field
+						||cats.defaultGenerators.field
+						}}<button ng-click="e.generators.field=cats.pathStr(cats.selectednode)"
+						>select Current</button><button ng-click="e.generators.field=null"
+						>default</button>
+					<br/><span ng-title="field-templates"
+						>{{e.generators.fieldTemplates
+							||appData.defaultGenerators.fieldTemplates
+							||cats.defaultGenerators.fieldTemplates
+						}}<button ng-click="e.generators.fieldTemplates=cats.pathStr(cats.selectednode)"
+						>select Current</button><button ng-click="e.generators.fieldTemplates=null"
+						>default</button></span>
+				</span>
+			</span>
+		</span><br/>
+		<span ng-click="remE(e)" title="Delete class {{e.name}}" value="✘" ng-icon="erase"></span><br/>
+	</span>
+	<fieldset class="brd"><legend>Fields<span ng-icon="slashShow,show" prop="e.showFlds"></span></legend>
+		<span ng-if="e.showFlds">
+			<li ng-repeat="f in e.fields" ng-init="p.f=f">
+				<span ng-icon="slashShow,show" prop="f.showDom" ></span><span ng-if="!f.showDom">{{f.name}}</span>
+				<fieldset ng-if="f.showDom"><legend>
+						<textarea ng-model="f.name" ng-change="chngFieldName(e,f)" ></textarea>
+						<span ng-icon="erase" ng-click="remF(e,f)" value="✘"></span>
+						</legend>
+					<fieldset ><legend>Type</legend>
+						<select ng-model="f.type" ng-options="ct for ct in columnTypes"></select>
+						<fieldset ><legend class="smlLbl">Not-Null</legend><input ng-model="f.notNull" type="checkbox"/></fieldset>
+						<span ng-if="f.type=='enum'||f.type=='set'">
+							<span ng-repeat="i in f.enums">
+								<textarea ng-model="i"></textarea>
+								<input type="radio" ng-model="f.enumsDefault" title="default" ng-value="i"/>
+								<span ng-icon="erase" ng-click="remEnum(e,f,i)" value="✘"></span>
+							</span><input ng-click="onAddEnum(e,f)" title="new enum item" 
+							type="button" value="new item" class="smlLbl"/></span>
+						<span ng-if="f.type=='Integer'">
+							<fieldset ><legend class="smlLbl">length</legend><input ng-model="f.length" placeholder="length" title="length" size="3" /></fieldset>
+							<fieldset ng-if="f.pk" ><legend class="smlLbl">auto_increment</legend><input ng-model="f.auto_increment" title="auto increment" type="checkbox"/></fieldset></span>
+						<span ng-if="f.type=='Date'">
+							<fieldset ><legend class="smlLbl">onUpdateCurrentTimestamp</legend><input ng-model="f.onUpdateCurrentTimestamp" title="onUpdate Current Timestamp" type="checkbox"/></fieldset>
+							<fieldset ><legend class="smlLbl">defaultCurrentTimestamp</legend><input ng-model="f.defaultCurrentTimestamp" title="default Current Timestamp" type="checkbox"/></fieldset></span>
+						<span ng-if="f.type=='String'">
+							<fieldset ><legend class="smlLbl">isText_notVarChar</legend><input ng-model="f.isText_notVarChar" title="isText_notVarChar" type="checkbox"/></fieldset>
+							<fieldset ><legend class="smlLbl">length</legend><input ng-model="f.length" type="integer"  placeholder="length" title="length" size="3" /></fieldset></span>
+						<span ng-if="f.type=='blob'">
+							<fieldset ><legend class="smlLbl">isJson</legend><input ng-model="f.json" title="isJson" type="checkbox"/></fieldset>
+							<fieldset ><legend class="smlLbl">length</legend><input ng-model="f.length" type="integer"  placeholder="length" title="length" size="3"/></fieldset></span>
+						<span ng-if="f.type=='fk'">
+							<select ng-model="f.fkType" ng-options="ct.name for ct in appData.entities"></select>
+							<select ng-model="f.fkCol" ng-options="ct.name for ct in f.fkType.fields"></select>
+						</span>
+					</fieldset>
+					<fieldset><legend>PK</legend>
+						<input type="checkbox" ng-model="f.pk" /></fieldset>
+				</fieldset>
+			</li>
+			<hr style="background-color: #bce47f;" />
+			<fieldset ng-init="nu={}"><legend>New Field</legend>
+					<textarea ng-model="nu.name"></textarea>
+				<select ng-model="nu.type" ng-options="ct for ct in columnTypes"></select>
+				<input type="button" ng-click="newField(e,nu)" value="newField"/></fieldset>
+		</span>
+	<fieldset class="brd"><legend>DB-indices
+		<span ng-icon="slashShow,show" prop="e.showIndx"></span></legend>
+		<span ng-if="e.showIndx">
+		<li ng-repeat="indx in e.indices">
+			<span ng-icon="slashShow,show" prop="indx.showDom"></span>
+			<span ng-if="!indx.showDom">{{indx.name}}</span>
+			<fieldset ng-if="indx.showDom">
+				<legend>
+					<textarea ng-model="indx.name" ng-change="chngIndxName(e,indx)" ></textarea>
+					<span ng-con="erase" ng-click="remIndx(e,indx)" value="✘"></span>
+				</legend>
+				<fieldset ><legend>Type</legend>
+					<select ng-model="indx.type" ng-options="ct for ct in columnTypes.indices"></select>
+					
+				</fieldset>
+				<fieldset><legend>cols</legend>
+					<fieldset ng-repeat="c in indx.cols">
+						<legend>
+							<select ng-model="c.col" ng-options="fld.name for fld in e.fields"></select>
+						</legend>
+						<fieldset >
+							<legend class="smlLbl">length</legend>
+							<input ng-model="c.length" placeholder="length" title="length" size="3" />
+						</fieldset>
+						<span ng-icon="erase" ng-click="remIndxCol(e,indx,c)" value="✘"></span>
+					</fieldset>
+				</fieldset>
+				<input type="button" ng-click="addIndxCol(e,indx)" value="+" title="new Index-Column"/>
+			</fieldset>
+		</li>
+		<hr style="background-color: #bce47f;" />
+			<fieldset><legend>New Index</legend>
+				<textarea ng-model="newIndxName"></textarea>
+				<input type="button" ng-click="newIndx(e,newIndxName)" value="new Index"/>
+			</fieldset>
+	</span></fieldset>
+	</fieldset Fields >
+
+	<fieldset class="brd"><legend>HttpMethods<span 
+		ng-icon="slashShow,show" prop="e.showDomMthds"></span></legend>
+		<span ng-if="e.showDomMthds">
+		<span ng-repeat="m in e.httpMethods">
+		<span ng-icon="slashShow,show" prop="m.showDom"></span>
+		<div ng-if="!m.showDom" class="brd">{{m.name}} </div>
+		<fieldset ng-if="m.showDom" class="brd">
+			<legend><fieldset><legend ng-click="m.showDom=0">method-name</legend>
+					<textarea ng-model="m.name"></textarea></fieldset>
+				<fieldset><legend>returnType</legend>
+					<textarea ng-model="m.returnType"></textarea></fieldset>
+			</legend>
+			<fieldset class="brd"><legend>throws:</legend>
+				<span ng-repeat="x in m.throws">
+					<span ng-if="$index!=0">,</span>
+					<textarea ng-model="x"></textarea>
+					<span ng-icon="erase" ng-click="remMEx(e,m,x)" value="✘"></span>
+				</span>
+				<hr/>
+				<textarea ng-model="newX"></textarea>
+				<input type="button" ng-click="m.throws.push(newX)" value="newThrows"/>
+			</fieldset>
+			<table><thead><tr><th>param-name</th><th>param-type</th></tr></thead><tbody>
+				<tr ng-repeat="prm in m.params"><td>
+					<textarea ng-model="prm.name"></textarea><span ng-icon="slashShow,show" prop="prm.showAnno"></span>
+					<span ng-if="prm.showAnno">
+					, <input type="checkbox" ng-model="prm.prmName" />prmName
+					, <input type="checkbox" ng-model="prm.prmUrlPart" />prmUrlPart
+					, <input type="checkbox" ng-model="prm.prmLoadByUrl" />prmLoadByUrl
+					, <input type="checkbox" ng-model="prm.prmBody" />prmBody</span>
+					</td>
+					<td><textarea ng-model="prm.type"></textarea>
+						<span ng-icon="erase" ng-click="remPrm(e,m,prm)" value="✘"></span></td>
+				</tr>
+				<tr style="background-color: #bce47f;" ng-init="prm ={}"><td>
+					<textarea ng-model="prm.name"></textarea></td>
+					<td><textarea ng-model="prm.type"></textarea>
+						<input type="button" ng-click="m.params.push({name:prm.name,type:prm.type})" value="create Param"/></td>
+				</tr>
+				</tbody>
+			</table>
+			<fieldset><legend>body</legend><textarea ng-model="m.body" style="resize: both"></textarea></fieldset>
+		</fieldset>
+		</span>
+		<br/>
+		<fieldset><legend>New HttpMethod</legend>
+			<textarea ng-model="nuname"></textarea>
+			<input type="button" ng-click="
+			e.httpMethods.push({name:nuname,returnType:'void',throws:[],params:[],body:''})" value="create"/>
+			<span ng-icon="slashShow,show" prop="e.showDefMethodButtons"></span>
+			<span ng-if="e.showDefMethodButtons"><input type="button" ng-click="" value="toggle_default HttpMethod CRUD"/>
+			<input type="button" ng-click="toggle_defaultCRUDhttpMethod(e)" value="toggle_default HttpMethod Get"/>
+			<input type="button" ng-click="toggle_defaultDeleteHttpMethod(e)" value="toggle_default HttpMethod Delete"/>
+			<input type="button" ng-click="toggle_defaultListHttpMethod(e)" value="toggle_default HttpMethod List"/>
+			<input type="button" ng-click="toggleDefaultHttpMethodOrmAppJson(e)" value="toggle_default HttpMethod OrmAppJson"/>
+			<input type="button" ng-click="" value="toggle_default HttpMethod Angular Form"/>
+			<input type="button" ng-click="" value="toggle_default HttpMethod Angular Report"/>
+			<input type="button" ng-click="" value="toggle_default HttpMethod Angular Pivot"/></span>
+		</fieldset>
+		</span>
+	</fieldset>
+</fieldset>
+	<br/>
+
+<fieldset class="brd"><legend>New Entity</legend>
+	<textarea ng-model="newEntityName"></textarea>
+	<input type="button" ng-click="newEntity(newEntityName)" 
+		value="create Entity"/>
+	
+</fieldset>
+</span>
+
+<hr/>
+<!-- h2 style="text-align:center">Cats</h2 --><table width="99%" ><tr><td>
+<ng-tree treenode="cats" parentdata="cats">
+	<span ng-if="cats.selectednode==treenode">( </span><span ng-click="cats.selectednode=treenode">{{treenode.text}}</span><span ng-if="cats.selectednode==treenode"> - selected)</span>
+	<span ng-icon="slashShow,show" prop="treenode.show"></span>
+	<span ng-if="treenode.show">
+		<span ng-icon="edit"></span><span ng-icon="erase"></span>
+		<ul class="indent">
+			<li ng-repeat="item in treenode.items">
+				<ng-tree treenode="item" parentdata="treenode.items" ></ng-tree>
+			</li>
+		</ul>
+	</span>
+</ng-tree></td>
+<td><span ng-title="selectedNode">{{cats.pathStr(cats.selectednode)}}</span></td></tr></table>
+<hr/>
+<h2 style="text-align:center">Views</h2><span ng-icon="slashShow,show" prop="show.views"></span><span ng-if="show.views">
+<br/>
+<fieldset class="brd"><legend>New View</legend>
+	<textarea ng-model="newViewName"></textarea>
+	<input type="button" ng-click="newView(newViewName)" 
+		value="create View"/></fieldset>
+</span>
+
+<hr/>
+<h2 style="text-align:center">Implementation Source-Code (Output)</h2><span ng-icon="slashShow,show" prop="show.implementation"></span>
+<pre ng-if="show.implementation">
+<%@ include file = "tl.jsp" %>
+<%! public class {{appData.servletClassName}} {
+final static String packageName="{{appData.packageName}}"
+,jspName="{{appData.jspName}}";
+
+<div class="brd" ng-repeat="tbl in appData.entities"
+>public static class {{tbl.name}} extends Sql.Tbl{
+	public static final String dbtName="{{tbl.dbtName}}";
+	@Override public String getName(){return dbtName;}
+<span ng-repeat="field in tbl.fields">
+	@F public  {{field.type}} {{field.name}};</span>
+
+	public enum C implements CI{
+	<span ng-repeat="field in tbl.fields"><span ng-if="$index != 0"
+	>,</span>{{field.name}}</span>;
+		public Field f(){return Co.f(name(), {{tbl.name}}.class);}
+		public String getName(){return name();}
+		public Class getType(){return f().getType();}
+	}//C
+
+	@Override public  CI[]columns(){return C.values();}
+	@Override public Object[]wherePK(){Object[]a={
+<span ng-repeat="field in tbl.fields" ng-init="countPk=0"
+	><span ng-if="field.pk"><span ng-if="countPk++ != 0">
+	,</span>C.{{field.name}},{{field.name}}</span></span>};return a;}
+
+	@Override public List creationDBTIndices(TL tl){ {{tbl.creationDBTIndices}} }
+
+
+<div class="brd" ng-repeat="httpMethod in tbl.httpMethods">
+@HttpMethod(usrLoginNeeded = {{httpMethod.usrLoginNeeded}}
+	,useClassName = {{httpMethod.useClassName}})
+	public static {{httpMethod.returnType}} {{httpMethod.methodName}}(
+	<span ng-repeat="prm in httpMethod.params">
+		<span ng-if="$index != 0">,</span>@HttpMethod(prmName = "{{prm.name}}")
+		{{prm.type}} {{prm.name}}
+	</span>
+	<span ng-if="httpMethod.params.length">,</span>TL tl)<span ng-if="httpMethod.throws.length">
+	throws <span ng-repeat="x in httpMethod.throws">
+		<span ng-if="$index!=0">,</span>{{x}}</span></span>
+	{
+	{{httpMethod.body}}
+	}</div>
+
+//class-{{tbl.name}}-declarations:
+{{tbl.declarations}}
+
+}//class {{tbl.name}}
+</div>
+
+	static void staticInit() {
+		registerMethods({{appData.servletClassName}}.class);
+		<span ng-repeat="tbl in appData.entities">registerMethods({{tbl.name}}.class);
+		if(! Sql.Tbl.registered.contains({{tbl.name}}.class))
+			Sql.Tbl.registered.add({{tbl.name}}.class);
+		</span>
+
+	}
+
+	enum context{
+		String str,a[];context(String...p){str=p[0];a=p;}
+		enum DB{
+			pool("dbpool-"+SrvltName)
+			,reqCon("javax.sql.PooledConnection")
+			,server("{{appData.dbHost}}","localhost")
+			,dbName("{{appData.dbName}}","js4d00_test")
+			,un("{{appData.dbUn}}","root")
+			,pw("{{appData.dbPw}}","qwerty","")
+			;String str,a[];DB(String...p){str=p[0];a=p;}
+		}
+	}//context
+
+/*servlet-{{appData.servletClassName}}-declarations:*/
+{{appData.declarations}}
+
+//%>
+}//class {{appData.servletClassName}}
+</pre>
+
+<!-- 
+server-generator(xhr & source code)
+jsp back-end for scaffolding
+jsp functionality,e.g. login and user-auth on selected ops, user-access-level
+
+ng-store-service, ng xhr service, web-sql
+
+templates store
+	entity json-template
+	field  json-template
+	list of html/ng src-code-str fragments
+	cats templates
+		template entry(name-value)
+
+operation to generate indices based on fields
+
+view-generator
+	templates (tmplt-name & tmplt-src-code-str-value)
+		main-body
+		template for entity
+			template for fields
+		components
+			screen
+			tab
+			main-menu
+			component link to switch/show 
+				screen,tab,element
+				(ng-prop , elem new val)
+			script snippets
+			ng directives
+			ng mustach
+	generator operations menu
+	interweiving(when adding fields to pre-existing-entity that already has views)
+		
+
+2018.10.25
+server fileMan httpMethods
+client-side fileMan
+	dirs/files-list
+	file viewer/editor modes:
+		html wYSIWYG(ng-tinyMCE)
+		json-editor
+		SCaFFolding/entity editor
+		cat/template editor
+			generator methods
+				client-side generator
+					entity-generator(  )
+					field
+			cats
+				ng directives
+					each-entity form/template
+						each-field form/template
+					page
+					tab
+					form
+					button-link: ref+target
+					tree
+
+				html (1of2: 1.str , 2.callback-func)
+					field types
+						int
+							long
+						str
+							varchar
+							text
+						date
+							inp-date
+							3 ints/ 2ints dropdowns
+							week-cal
+							month-cal
+						enum
+						set
+						map/json-editor
+						fk
+						inps:text,integer,date,select
+					entity-form
+						free-style
+							(html-default inline)
+							html-block
+						using className(css)
+						using fieldset-legend
+						html-table-tr-td
+						using div+css-grid
+					form
+						master-detail
+						pagenation
+						using input params filters
+						report (many types)
+							calendar
+								events
+								day/hours
+								week
+								month
+								year
+					tab
+					button-link
+					tree(using ng-tree directive)
+					directives
+				
+				IndexDB service
+				palettes(predefines-presets)
+					scaf
+						entities
+						fields
+						field-set
+						entity-sets
+						page-set
+					wizards(steps)
+					workflow
+					use-cases
+					help-screens (system-integration)
+					server-side httpMethods
+				
+		jsp/text EDItor
+-->
+</body>
+</html>
